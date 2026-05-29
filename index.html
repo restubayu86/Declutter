@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4CAF50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Declutter">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Declutter - Atur Barang Rumah</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f5f0;
+  --surface: #ffffff;
+  --surface2: #f0f0eb;
+  --surface3: #e8e8e0;
+  --text: #1a1a1a;
+  --text-secondary: #666666;
+  --border: #e0e0d8;
+  --keep: #4CAF50;
+  --donasi: #2196F3;
+  --buang: #f44336;
+  --jual: #FF9800;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --font: 'Inter', sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+input,select,textarea,button{font-family:var(--font)}
+#app{display:flex;flex-direction:column;height:100%;max-width:500px;margin:0 auto;position:relative;overflow:hidden}
+
+/* Status Bar */
+.statusbar{height:calc(28px + var(--safe-top));background:var(--surface);padding-top:var(--safe-top);display:flex;align-items:center;justify-content:space-between;padding-left:16px;padding-right:16px;font-size:12px;font-weight:500;border-bottom:1px solid var(--border);flex-shrink:0}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;display:inline-block}
+.sync-dot.offline{background:#f44336}
+.sync-dot.syncing{background:#FF9800;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Screens */
+.screen{flex:1;overflow:hidden;display:none;flex-direction:column}
+.screen.active{display:flex}
+
+/* App Bar */
+.appbar{padding:16px 20px 12px;background:var(--surface);flex-shrink:0;border-bottom:1px solid var(--border)}
+.appbar-top{display:flex;justify-content:space-between;align-items:center}
+.appbar-title{font-size:24px;font-weight:800;background:linear-gradient(135deg,#2E7D32,#4CAF50);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.appbar-stats{font-size:12px;color:var(--text-secondary)}
+
+/* Search */
+.search-wrap{padding:12px 16px;background:var(--surface);flex-shrink:0}
+.search-box{display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border)}
+.search-box svg{width:18px;height:18px;stroke:var(--text-secondary);fill:none}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1}
+.search-clear{cursor:pointer;color:var(--text-secondary);display:none}
+
+/* Filter Chips */
+.filter-section{padding:0 16px 12px;background:var(--surface);flex-shrink:0}
+.filter-label{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px}
+.filter-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.filter-chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;white-space:nowrap;background:var(--surface2)}
+.chip.active{background:var(--keep);color:white;border-color:var(--keep)}
+.chip.tujuan-keep.active{background:var(--keep);color:white}
+.chip.tujuan-donasi.active{background:var(--donasi);color:white}
+.chip.tujuan-buang.active{background:var(--buang);color:white}
+.chip.tujuan-jual.active{background:var(--jual);color:white}
+
+/* Scroll */
+.scroll{flex:1;overflow-y:auto;padding:0 16px 80px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* Summary Cards */
+.summary-cards{display:flex;gap:12px;margin-bottom:20px}
+.summary-card{flex:1;background:var(--surface);border-radius:var(--radius-sm);padding:12px;text-align:center;border:1px solid var(--border)}
+.summary-card .count{font-size:22px;font-weight:700}
+.summary-card .label{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.summary-card.keep .count{color:var(--keep)}
+.summary-card.donasi .count{color:var(--donasi)}
+.summary-card.buang .count{color:var(--buang)}
+.summary-card.jual .count{color:var(--jual)}
+
+/* Item Card */
+.item-card{background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;cursor:pointer;border:1px solid var(--border);transition:all .15s}
+.item-card:active{transform:scale(.98)}
+.item-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.item-icon.keep{background:rgba(76,175,80,.15);color:var(--keep)}
+.item-icon.donasi{background:rgba(33,150,243,.15);color:var(--donasi)}
+.item-icon.buang{background:rgba(244,67,54,.15);color:var(--buang)}
+.item-icon.jual{background:rgba(255,152,0,.15);color:var(--jual)}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.item-category{font-size:11px;color:var(--text-secondary);display:flex;gap:8px;flex-wrap:wrap}
+.item-category span{background:var(--surface2);padding:2px 8px;border-radius:12px}
+.item-reason{font-size:12px;color:var(--text-secondary);margin-top:4px;display:flex;align-items:center;gap:4px}
+.item-right{text-align:right}
+.item-tujuan{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.item-tujuan.keep{background:rgba(76,175,80,.15);color:var(--keep)}
+.item-tujuan.donasi{background:rgba(33,150,243,.15);color:var(--donasi)}
+.item-tujuan.buang{background:rgba(244,67,54,.15);color:var(--buang)}
+.item-tujuan.jual{background:rgba(255,152,0,.15);color:var(--jual)}
+
+/* Empty State */
+.empty{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+.empty .e-icon{font-size:64px;margin-bottom:16px}
+.empty .empty-btn{background:#4CAF50;color:white;border:none;padding:12px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}
+
+/* FAB */
+.fab{position:absolute;bottom:calc(72px + var(--safe-bot) + 12px);right:20px;width:56px;height:56px;background:#4CAF50;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(76,175,80,.4);cursor:pointer;z-index:10;border:none;color:white}
+.fab:active{transform:scale(.93)}
+.fab svg{width:24px;height:24px;stroke:white;stroke-width:2}
+
+/* Bottom Nav */
+.bottom-nav{height:calc(60px + var(--safe-bot));background:var(--surface);border-top:1px solid var(--border);display:flex;padding-top:8px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:var(--text-secondary)}
+.nav-item.active{color:#4CAF50}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.nav-item span{font-size:10px;font-weight:500}
+
+/* Bottom Sheet */
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:20;display:none;align-items:flex-end}
+.sheet-overlay.open{display:flex}
+.sheet{background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:0 0 calc(24px + var(--safe-bot));max-height:85%;overflow-y:auto}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto}
+.sheet-header{padding:8px 20px 16px;border-bottom:1px solid var(--border)}
+.sheet-close{float:right;cursor:pointer}
+.sheet-title{font-size:18px;font-weight:700;padding-right:28px}
+.sheet-category{font-size:12px;color:var(--text-secondary);margin-top:4px}
+.sheet-rows{padding:8px 0}
+.sheet-row{display:flex;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.sheet-row .lbl{font-size:13px;color:var(--text-secondary)}
+.sheet-row .val{font-size:14px;font-weight:500}
+.sheet-reason{padding:16px 20px;background:var(--surface2);margin:8px 16px;border-radius:12px}
+.sheet-actions{display:flex;gap:10px;padding:16px}
+.btn-action{flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.btn-edit{background:var(--surface3);color:var(--text)}
+.btn-delete{background:rgba(244,67,54,.1);color:#f44336}
+
+/* Add Screen */
+#addScreen{background:var(--bg)}
+.addbar{background:var(--surface);padding:calc(12px + var(--safe-top)) 16px 12px;display:flex;align-items:center;gap:14px;flex-shrink:0;border-bottom:1px solid var(--border)}
+.addbar-back{cursor:pointer}
+.addbar-title{font-size:18px;font-weight:700;flex:1}
+.form-scroll{flex:1;overflow-y:auto;padding:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-size:14px;color:var(--text);outline:none}
+.form-group input:focus,.form-group select:focus{border-color:#4CAF50}
+.form-group textarea{resize:none;height:80px}
+.tujuan-options{display:flex;gap:10px;margin-top:8px}
+.tujuan-opt{flex:1;padding:12px;border-radius:var(--radius-sm);text-align:center;cursor:pointer;border:2px solid var(--border);font-weight:500}
+.tujuan-opt.keep.selected{background:rgba(76,175,80,.15);border-color:#4CAF50;color:#4CAF50}
+.tujuan-opt.donasi.selected{background:rgba(33,150,243,.15);border-color:#2196F3;color:#2196F3}
+.tujuan-opt.buang.selected{background:rgba(244,67,54,.15);border-color:#f44336;color:#f44336}
+.tujuan-opt.jual.selected{background:rgba(255,152,0,.15);border-color:#FF9800;color:#FF9800}
+.btn-submit{width:100%;padding:14px;background:#4CAF50;color:white;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn-submit:disabled{opacity:.6}
+
+/* Dashboard */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border-radius:var(--radius-sm);padding:16px;border:1px solid var(--border)}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .label{font-size:12px;color:var(--text-secondary);margin-top:4px}
+.category-list{background:var(--surface);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)}
+.category-item{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.category-item:last-child{border-bottom:none}
+.category-name{font-weight:500}
+.category-count{font-size:13px;color:var(--text-secondary)}
+
+/* Settings */
+.settings-group{background:var(--surface);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);margin-bottom:16px}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.settings-row:last-child{border-bottom:none}
+.settings-label{font-weight:500}
+.api-input{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;width:100%;margin-top:8px;outline:none}
+
+/* Toast & Loading */
+.toast{position:absolute;bottom:calc(80px + var(--safe-bot) + 10px);left:50%;transform:translateX(-50%);background:#333;color:white;padding:10px 20px;border-radius:30px;font-size:13px;opacity:0;transition:all .3s;z-index:100;pointer-events:none}
+.toast.show{opacity:1}
+.loading{position:absolute;inset:0;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid #e0e0e0;border-top-color:#4CAF50;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Offline Banner */
+.offline-banner{background:rgba(244,67,54,.1);color:#f44336;font-size:12px;text-align:center;padding:8px;display:none}
+.offline-banner.show{display:block}
+.offline-banner.info{background:rgba(33,150,243,.1);color:#2196F3}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="loading" id="loadingScreen">
+    <div class="spinner"></div>
+    <div class="loading-sub">Memuat data...</div>
+  </div>
+
+  <div class="offline-banner" id="offlineBanner">📡 Offline - Data tersimpan lokal</div>
+
+  <div class="statusbar">
+    <span class="time" id="clockEl">09:41</span>
+    <div class="icons">
+      <span class="sync-dot offline" id="syncDot"></span>
+    </div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="homeScreen">
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="appbar-title">Declutter</div>
+        <div class="appbar-stats" id="totalStats">0 item</div>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2"/></svg>
+        <input type="text" id="searchInput" placeholder="Cari barang..." oninput="onSearch(this.value)">
+        <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+      </div>
+    </div>
+
+    <!-- Filter Kategori -->
+    <div class="filter-section">
+      <div class="filter-label">📂 Kategori</div>
+      <div class="filter-chips" id="categoryFilterChips"></div>
+    </div>
+
+    <!-- Filter Tujuan -->
+    <div class="filter-section">
+      <div class="filter-label">🎯 Tujuan</div>
+      <div class="filter-chips" id="tujuanFilterChips">
+        <div class="chip active" data-tujuan="ALL" onclick="filterByTujuan('ALL')">Semua</div>
+        <div class="chip tujuan-keep" data-tujuan="keep" onclick="filterByTujuan('keep')">📦 Keep</div>
+        <div class="chip tujuan-donasi" data-tujuan="donasi" onclick="filterByTujuan('donasi')">🤝 Donasi</div>
+        <div class="chip tujuan-buang" data-tujuan="buang" onclick="filterByTujuan('buang')">🗑 Buang</div>
+        <div class="chip tujuan-jual" data-tujuan="jual" onclick="filterByTujuan('jual')">💰 Jual</div>
+      </div>
+    </div>
+
+    <div class="scroll" id="homeScroll">
+      <div class="summary-cards" id="summaryCards"></div>
+      <div id="itemList"></div>
+    </div>
+    <button class="fab" onclick="openAdd()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2"/></svg></button>
+  </div>
+
+  <!-- DASHBOARD SCREEN -->
+  <div class="screen" id="dashScreen">
+    <div class="appbar"><div class="appbar-title">Dashboard</div></div>
+    <div class="scroll" id="dashScroll"></div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="screen" id="settingsScreen">
+    <div class="appbar"><div class="appbar-title">Pengaturan</div></div>
+    <div class="scroll">
+      <div class="settings-group">
+        <div class="settings-row" onclick="openCategoryManager()">
+          <div><div class="settings-label">🏷️ Manajemen Kategori</div><div style="font-size:11px;color:var(--text-secondary)">Tambah/edit/hapus kategori</div></div>
+          <svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-row" style="flex-direction:column;align-items:flex-start">
+          <div class="settings-label">🔗 Google Sheets Sync</div>
+          <input type="url" id="apiUrlInput" class="api-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <button onclick="saveApiUrl()" style="margin-top:8px;background:#4CAF50;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer">Simpan URL</button>
+        </div>
+        <div class="settings-row"><div class="settings-label">Status Koneksi</div><div id="connStatus">—</div></div>
+        <div class="settings-row" onclick="testConnection()"><div class="settings-label">🔌 Test Koneksi</div><svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+        <div class="settings-row" onclick="syncData(true)"><div class="settings-label">🔄 Sinkronisasi Data</div><svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-row" onclick="exportJSON()"><div class="settings-label">📥 Export Data (JSON)</div><svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+        <div class="settings-row"><div><div class="settings-label">📤 Import Data (JSON)</div></div><input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none"><button onclick="document.getElementById('importFile').click()" style="background:var(--surface2);border:1px solid var(--border);padding:6px 12px;border-radius:8px;cursor:pointer">Pilih File</button></div>
+        <div class="settings-row" onclick="clearAllData()"><div><div class="settings-label" style="color:#f44336">🗑 Hapus Semua Data</div></div><svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-row"><div class="settings-label">Versi Aplikasi</div><div>2.0.0</div></div>
+        <div class="settings-row"><div class="settings-label">Total Item</div><div id="totalItemsCount">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY MANAGEMENT SCREEN -->
+  <div class="screen" id="categoryScreen">
+    <div class="addbar">
+      <div class="addbar-back" onclick="setNav(2)"><svg viewBox="0 0 24 24" width="22" height="22"><polyline points="15 18 9 12 15 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+      <div class="addbar-title">Manajemen Kategori</div>
+    </div>
+    <div class="scroll">
+      <div class="form-group">
+        <label>➕ Tambah Kategori Baru</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="newCategoryName" placeholder="Nama kategori" style="flex:1">
+          <button onclick="addNewCategory()" style="background:#4CAF50;color:white;border:none;padding:0 16px;border-radius:8px;cursor:pointer">Tambah</button>
+        </div>
+      </div>
+      <div class="settings-group" id="categoryListContainer"></div>
+      <div class="settings-group">
+        <div class="settings-row" onclick="resetDefaultCategories()">
+          <div><div class="settings-label">🔄 Reset ke Kategori Default</div></div>
+          <svg width="16" height="16" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT SCREEN -->
+  <div class="screen" id="addScreen">
+    <div class="addbar">
+      <div class="addbar-back" onclick="closeAdd()"><svg viewBox="0 0 24 24" width="22" height="22"><polyline points="15 18 9 12 15 6" stroke="currentColor" fill="none" stroke-width="2"/></svg></div>
+      <div class="addbar-title" id="addScreenTitle">Tambah Barang</div>
+    </div>
+    <div class="form-scroll">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>Nama Barang *</label>
+        <input type="text" id="fNama" placeholder="Contoh: Botol sampo kosong">
+      </div>
+      <div class="form-group">
+        <label>Kategori *</label>
+        <select id="fKategori"></select>
+      </div>
+      <div class="form-group">
+        <label>Alasan Declutter *</label>
+        <textarea id="fAlasan" placeholder="Kenapa barang ini perlu di declutter? Contoh: Sudah habis, rusak, tidak dipakai, dll..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tujuan *</label>
+        <div class="tujuan-options" id="tujuanOptions">
+          <div class="tujuan-opt keep" data-tujuan="keep" onclick="selectTujuan('keep')">📦 Keep<br><span style="font-size:11px">Simpan</span></div>
+          <div class="tujuan-opt donasi" data-tujuan="donasi" onclick="selectTujuan('donasi')">🤝 Donasi<br><span style="font-size:11px">Sumbangkan</span></div>
+          <div class="tujuan-opt buang" data-tujuan="buang" onclick="selectTujuan('buang')">🗑 Buang<br><span style="font-size:11px">Buang</span></div>
+          <div class="tujuan-opt jual" data-tujuan="jual" onclick="selectTujuan('jual')">💰 Jual<br><span style="font-size:11px">Jual</span></div>
+        </div>
+      </div>
+      <button class="btn-submit" id="submitBtn" onclick="submitForm()">💾 Simpan</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav0" onclick="setNav(0)"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" fill="none" stroke-width="2"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" fill="none" stroke-width="2"/></svg><span>Beranda</span></div>
+    <div class="nav-item" id="nav1" onclick="setNav(1)"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" stroke="currentColor" fill="none" stroke-width="2"/><rect x="14" y="3" width="7" height="7" stroke="currentColor" fill="none" stroke-width="2"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" fill="none" stroke-width="2"/><rect x="3" y="14" width="7" height="7" stroke="currentColor" fill="none" stroke-width="2"/></svg><span>Dashboard</span></div>
+    <div class="nav-item" id="nav2" onclick="setNav(2)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" fill="none" stroke-width="2"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" stroke="currentColor" fill="none" stroke-width="2"/></svg><span>Settings</span></div>
+  </div>
+
+  <!-- DETAIL SHEET -->
+  <div class="sheet-overlay" id="detailOverlay" onclick="closeDetailBg(event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div class="sheet-close" onclick="closeDetail()"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></div>
+        <div class="sheet-title" id="d_nama"></div>
+        <div class="sheet-category" id="d_kategori"></div>
+      </div>
+      <div class="sheet-rows">
+        <div class="sheet-row"><span class="lbl">Alasan Declutter</span><span class="val" id="d_alasan"></span></div>
+        <div class="sheet-row"><span class="lbl">Tujuan</span><span class="val" id="d_tujuan"></span></div>
+        <div class="sheet-row"><span class="lbl">Dibuat</span><span class="val" id="d_created"></span></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-action btn-edit" onclick="editItem()">✏️ Edit</button>
+        <button class="btn-action btn-delete" onclick="deleteItem()">🗑 Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ==================== KONFIGURASI ====================
+let API_URL = localStorage.getItem('declutter_api_url') || '';
+let items = [];
+let categories = [];
+let currentCategoryFilter = 'ALL';
+let currentTujuanFilter = 'ALL';
+let searchQuery = '';
+let currentItem = null;
+let selectedTujuan = 'keep';
+
+// Load data dari localStorage
+try {
+  const savedItems = localStorage.getItem('declutter_items');
+  if(savedItems) items = JSON.parse(savedItems);
+} catch(e) { console.error(e); }
+
+// Kategori Default
+const DEFAULT_CATEGORIES = [
+  'Kamar Mandi', 'Dapur', 'Pakaian', 'Elektronik', 'Dekorasi', 'Alat Tulis', 'Mainan', 'Lainnya'
+];
+
+// Helper functions
+const $ = id => document.getElementById(id);
+const escapeHtml = str => { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); };
+const formatDate = d => new Date(d).toLocaleDateString('id-ID');
+
+function showToast(msg, dur=2500) { const t=$('toast'); if(t){ t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), dur); } }
+function uid() { return Date.now()+'_'+Math.random().toString(36).slice(2,6); }
+function saveLocal() { localStorage.setItem('declutter_items', JSON.stringify(items)); }
+
+function setSyncStatus(s) {
+  const dot = $('syncDot');
+  if(!dot) return;
+  dot.className = 'sync-dot';
+  if(s === 'online') dot.classList.add('online');
+  else if(s === 'syncing') dot.classList.add('syncing');
+  else dot.classList.add('offline');
+}
+
+// ==================== MANAJEMEN KATEGORI ====================
+function loadCategories() {
+  const saved = localStorage.getItem('declutter_categories');
+  if(saved) {
+    categories = JSON.parse(saved);
+  }
+  if(!categories || categories.length === 0) {
+    categories = [...DEFAULT_CATEGORIES];
+    saveCategories();
+  }
+}
+
+function saveCategories() { localStorage.setItem('declutter_categories', JSON.stringify(categories)); }
+
+function updateCategoryDropdown() {
+  const select = $('#fKategori');
+  if(!select) return;
+  select.innerHTML = categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+}
+
+function updateCategoryChips() {
+  const container = $('#categoryFilterChips');
+  if(!container) return;
+  let html = `<div class="chip ${currentCategoryFilter==='ALL'?'active':''}" data-cat="ALL" onclick="filterByCategory('ALL')">📋 Semua</div>`;
+  categories.forEach(cat => {
+    const count = items.filter(i => i.kategori === cat).length;
+    html += `<div class="chip ${currentCategoryFilter===cat?'active':''}" data-cat="${escapeHtml(cat)}" onclick="filterByCategory('${escapeHtml(cat).replace(/'/g,"\\'")}')">📁 ${escapeHtml(cat)} (${count})</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderCategoryList() {
+  const container = $('#categoryListContainer');
+  if(!container) return;
+  if(categories.length===0) { container.innerHTML='<div style="padding:16px;text-align:center;color:gray">Belum ada kategori</div>'; return; }
+  const itemCount = {};
+  items.forEach(item => { if(item.kategori) itemCount[item.kategori] = (itemCount[item.kategori]||0)+1; });
+  container.innerHTML = categories.map((cat, idx) => `
+    <div class="settings-row" style="flex-wrap:wrap;gap:8px">
+      <div style="flex:1"><span style="font-weight:500">${escapeHtml(cat)}</span><span style="margin-left:8px;font-size:12px;color:gray">(${itemCount[cat]||0} item)</span></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="editCategory('${escapeHtml(cat).replace(/'/g,"\\'")}',${idx})" style="background:#e0e0e0;border:none;padding:6px 12px;border-radius:8px;cursor:pointer">✏️</button>
+        <button onclick="deleteCategory('${escapeHtml(cat).replace(/'/g,"\\'")}',${idx})" style="background:rgba(244,67,54,.1);color:#f44336;border:none;padding:6px 12px;border-radius:8px;cursor:pointer" ${itemCount[cat]>0?'disabled style="opacity:0.5"':''}>🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCategoryManager() { setNav(3); renderCategoryList(); }
+
+function addNewCategory() {
+  const input = $('#newCategoryName');
+  const newCat = input.value.trim();
+  if(!newCat) { showToast('Nama kategori tidak boleh kosong'); return; }
+  if(categories.includes(newCat)) { showToast('Kategori sudah ada'); return; }
+  categories.push(newCat);
+  saveCategories();
+  renderCategoryList();
+  updateCategoryChips();
+  updateCategoryDropdown();
+  input.value = '';
+  showToast(`✅ Kategori "${newCat}" ditambahkan`);
+}
+
+function editCategory(oldName, idx) {
+  const newName = prompt('Edit nama kategori:', oldName);
+  if(!newName || newName===oldName) return;
+  if(categories.includes(newName)) { showToast('Nama kategori sudah ada'); return; }
+  let updatedCount = 0;
+  items = items.map(item => { if(item.kategori===oldName) { updatedCount++; return {...item, kategori: newName}; } return item; });
+  categories[idx] = newName;
+  saveCategories();
+  saveLocal();
+  renderCategoryList();
+  updateCategoryChips();
+  updateCategoryDropdown();
+  renderAll();
+  showToast(`✅ Kategori diubah: ${oldName} → ${newName} (${updatedCount} item)`);
+}
+
+function deleteCategory(catName, idx) {
+  const itemCount = items.filter(i=>i.kategori===catName).length;
+  if(itemCount>0) { showToast(`⚠️ Tidak bisa hapus "${catName}" (${itemCount} item menggunakannya)`); return; }
+  if(!confirm(`Hapus kategori "${catName}"?`)) return;
+  categories.splice(idx,1);
+  saveCategories();
+  renderCategoryList();
+  updateCategoryChips();
+  updateCategoryDropdown();
+  showToast(`🗑 Kategori "${catName}" dihapus`);
+}
+
+function resetDefaultCategories() {
+  if(!confirm('Reset ke kategori default? Kategori kustom akan hilang.')) return;
+  categories = [...DEFAULT_CATEGORIES];
+  saveCategories();
+  renderCategoryList();
+  updateCategoryChips();
+  updateCategoryDropdown();
+  renderAll();
+  showToast(`✅ Reset ke ${categories.length} kategori default`);
+}
+
+// ==================== API FUNCTIONS ====================
+async function apiGet(action='getAll', timeout=10000) {
+  if(!API_URL) return null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), timeout);
+  try {
+    const r = await fetch(`${API_URL}?action=${action}`, { method:'GET', signal:controller.signal });
+    clearTimeout(timeoutId);
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e) { clearTimeout(timeoutId); return null; }
+}
+
+async function apiPost(body, timeout=10000) {
+  if(!API_URL) return null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), timeout);
+  try {
+    const r = await fetch(API_URL, { method:'POST', body:JSON.stringify(body), signal:controller.signal, headers:{'Content-Type':'application/json'} });
+    clearTimeout(timeoutId);
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e) { clearTimeout(timeoutId); return null; }
+}
+
+// ==================== SYNC ====================
+async function syncData(manual=false) {
+  if(!API_URL) {
+    if(manual) showToast('⚠️ URL API belum diatur');
+    setSyncStatus('offline');
+    return;
+  }
+  setSyncStatus('syncing');
+  if(manual) showToast('🔄 Menyinkronkan data...');
+  try {
+    const res=await apiGet('getAll');
+    if(res&&res.ok) {
+      items=res.data||[];
+      saveLocal();
+      const banner=$('offlineBanner');
+      if(banner) banner.classList.remove('show');
+      setSyncStatus('online');
+      renderAll();
+      if(manual) showToast(`✅ Sinkron selesai! (${items.length} item)`);
+    } else throw new Error('Invalid response');
+  } catch(err) {
+    const banner=$('offlineBanner');
+    if(banner) { banner.textContent='📡 Offline - Data tersimpan lokal'; banner.classList.add('show'); }
+    setSyncStatus('offline');
+    renderAll();
+    if(manual) showToast('⚠️ Gagal sinkronisasi');
+  }
+}
+
+// ==================== RENDER ====================
+function renderAll() {
+  renderSummaryCards();
+  updateCategoryChips();
+  renderItemsWithFilters();
+  if($('totalStats')) $('totalStats').textContent = items.length + ' item';
+  if($('totalItemsCount')) $('totalItemsCount').textContent = items.length;
+}
+
+function renderSummaryCards() {
+  const keep = items.filter(i => i.tujuan === 'keep').length;
+  const donasi = items.filter(i => i.tujuan === 'donasi').length;
+  const buang = items.filter(i => i.tujuan === 'buang').length;
+  const jual = items.filter(i => i.tujuan === 'jual').length;
+  const container = $('#summaryCards');
+  if(!container) return;
+  container.innerHTML = `
+    <div class="summary-card keep"><div class="count">${keep}</div><div class="label">📦 Keep</div></div>
+    <div class="summary-card donasi"><div class="count">${donasi}</div><div class="label">🤝 Donasi</div></div>
+    <div class="summary-card buang"><div class="count">${buang}</div><div class="label">🗑 Buang</div></div>
+    <div class="summary-card jual"><div class="count">${jual}</div><div class="label">💰 Jual</div></div>
+  `;
+}
+
+function renderItemsWithFilters() {
+  let data = [...items];
+  if(currentCategoryFilter !== 'ALL') data = data.filter(i => i.kategori === currentCategoryFilter);
+  if(currentTujuanFilter !== 'ALL') data = data.filter(i => i.tujuan === currentTujuanFilter);
+  if(searchQuery) { const q=searchQuery.toLowerCase(); data=data.filter(i=>i.nama.toLowerCase().includes(q)||(i.alasan||'').toLowerCase().includes(q)); }
+  
+  const list = $('#itemList');
+  if(!list) return;
+  if(!data.length) {
+    list.innerHTML = `<div class="empty"><div class="e-icon">📦</div><p>Belum ada barang</p><button class="empty-btn" onclick="openAdd()">+ Tambah Barang</button></div>`;
+    return;
+  }
+  list.innerHTML = data.map(item => {
+    const tujuan = item.tujuan || 'keep';
+    const icon = {keep:'📦', donasi:'🤝', buang:'🗑', jual:'💰'}[tujuan];
+    const tujuanLabel = {keep:'Keep', donasi:'Donasi', buang:'Buang', jual:'Jual'}[tujuan];
+    return `<div class="item-card" onclick="openDetail('${item.id}')">
+      <div class="item-icon ${tujuan}">${icon}</div>
+      <div class="item-body">
+        <div class="item-name">${escapeHtml(item.nama)}</div>
+        <div class="item-category"><span>${escapeHtml(item.kategori || 'Lainnya')}</span></div>
+        <div class="item-reason">📝 ${escapeHtml(item.alasan?.substring(0,50) || 'Tidak ada alasan')}${item.alasan?.length>50?'...':''}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-tujuan ${tujuan}">${tujuanLabel}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== FILTERS ====================
+function filterByCategory(cat) { currentCategoryFilter=cat; renderItemsWithFilters(); }
+function filterByTujuan(tujuan) { 
+  currentTujuanFilter=tujuan; 
+  document.querySelectorAll('#tujuanFilterChips .chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.tujuan === tujuan);
+  });
+  renderItemsWithFilters(); 
+}
+function onSearch(val) { searchQuery=val.trim(); if($('searchClear')) $('searchClear').style.display=val?'block':'none'; renderItemsWithFilters(); }
+function clearSearch() { if($('searchInput')) $('searchInput').value=''; searchQuery=''; if($('searchClear')) $('searchClear').style.display='none'; renderItemsWithFilters(); }
+
+// ==================== DETAIL SHEET ====================
+function openDetail(id) {
+  const item=items.find(i=>i.id===id);
+  if(!item) return;
+  currentItem=item;
+  const tujuanLabel = {keep:'📦 Keep (Simpan)', donasi:'🤝 Donasi (Sumbangkan)', buang:'🗑 Buang', jual:'💰 Jual'}[item.tujuan] || item.tujuan;
+  if($('d_nama')) $('d_nama').textContent=item.nama;
+  if($('d_kategori')) $('d_kategori').textContent=item.kategori || 'Lainnya';
+  if($('d_alasan')) $('d_alasan').textContent=item.alasan || '-';
+  if($('d_tujuan')) $('d_tujuan').textContent=tujuanLabel;
+  if($('d_created')) $('d_created').textContent=formatDate(item.created_at);
+  if($('detailOverlay')) $('detailOverlay').classList.add('open');
+}
+function closeDetail() { if($('detailOverlay')) $('detailOverlay').classList.remove('open'); }
+function closeDetailBg(e) { if(e.target===$('detailOverlay')) closeDetail(); }
+async function deleteItem() { if(!currentItem||!confirm(`Hapus "${currentItem.nama}"?`)) return; items=items.filter(i=>i.id!==currentItem.id); saveLocal(); closeDetail(); renderAll(); showToast('🗑 Item dihapus'); if(API_URL) apiPost({action:'deleteItem',id:currentItem.id}); }
+function editItem() { closeDetail(); openAdd(currentItem); }
+
+// ==================== ADD/EDIT FORM ====================
+function selectTujuan(tujuan) {
+  selectedTujuan = tujuan;
+  document.querySelectorAll('.tujuan-opt').forEach(opt => {
+    opt.classList.toggle('selected', opt.dataset.tujuan === tujuan);
+  });
+}
+
+function openAdd(item=null) {
+  updateCategoryDropdown();
+  if($('addScreenTitle')) $('addScreenTitle').textContent=item?'Edit Barang':'Tambah Barang';
+  if($('editId')) $('editId').value=item?item.id:'';
+  if($('fNama')) $('fNama').value=item?item.nama:'';
+  if($('fKategori')) $('fKategori').value=item?.kategori || categories[0];
+  if($('fAlasan')) $('fAlasan').value=item?.alasan||'';
+  selectedTujuan = item?.tujuan || 'keep';
+  selectTujuan(selectedTujuan);
+  if($('addScreen')) $('addScreen').classList.add('active');
+}
+function closeAdd() { if($('addScreen')) $('addScreen').classList.remove('active'); }
+async function submitForm() {
+  const nama=$('fNama')?.value.trim();
+  const kategori=$('fKategori')?.value;
+  const alasan=$('fAlasan')?.value.trim();
+  if(!nama){showToast('⚠️ Nama barang wajib diisi');return;}
+  if(!alasan){showToast('⚠️ Alasan declutter wajib diisi');return;}
+  const btn=$('submitBtn'); if(btn){btn.disabled=true; btn.textContent='⏳ Menyimpan...';}
+  const itemData={nama,kategori,alasan,tujuan:selectedTujuan};
+  const editId=$('editId')?.value;
+  if(editId){
+    const idx=items.findIndex(i=>i.id===editId);
+    if(idx>-1) items[idx]={...items[idx],...itemData,updated_at:new Date().toISOString()};
+    if(API_URL) await apiPost({action:'updateItem',id:editId,item:itemData});
+    showToast('✅ Item diperbarui!');
+  } else {
+    const newItem={...itemData,id:uid(),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    items.unshift(newItem);
+    if(API_URL){const res=await apiPost({action:'addItem',item:itemData});if(res?.ok&&res.id)newItem.id=res.id;}
+    showToast('✅ Barang ditambahkan!');
+  }
+  saveLocal(); closeAdd(); renderAll();
+  if(btn){btn.disabled=false; btn.textContent='💾 Simpan';}
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboard() {
+  const total = items.length;
+  const keep = items.filter(i=>i.tujuan==='keep').length;
+  const donasi = items.filter(i=>i.tujuan==='donasi').length;
+  const buang = items.filter(i=>i.tujuan==='buang').length;
+  const jual = items.filter(i=>i.tujuan==='jual').length;
+  const byCategory = {};
+  items.forEach(item => { byCategory[item.kategori||'Lainnya'] = (byCategory[item.kategori||'Lainnya']||0)+1; });
+  const categoryRows = Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>`<div class="category-item"><span class="category-name">${escapeHtml(cat)}</span><span class="category-count">${count} item</span></div>`).join('');
+  const dashScroll=$('dashScroll');
+  if(!dashScroll) return;
+  dashScroll.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="value">${total}</div><div class="label">Total Item</div></div>
+      <div class="stat-card"><div class="value" style="color:#4CAF50">${keep}</div><div class="label">Keep</div></div>
+      <div class="stat-card"><div class="value" style="color:#2196F3">${donasi}</div><div class="label">Donasi</div></div>
+      <div class="stat-card"><div class="value" style="color:#FF9800">${jual}</div><div class="label">Jual</div></div>
+    </div>
+    <div class="stat-card" style="margin-bottom:16px"><div class="value" style="color:#f44336">${buang}</div><div class="label">Buang</div></div>
+    <div class="settings-group"><div class="settings-row" style="font-weight:600;border-bottom:1px solid var(--border)">📊 Per Kategori</div>${categoryRows||'<div class="category-item"><span>Tidak ada data</span></div>'}</div>
+  `;
+}
+
+// ==================== SETTINGS ====================
+function saveApiUrl() { let url=$('apiUrlInput')?.value.trim(); if(!url){showToast('URL tidak boleh kosong');return;} API_URL=url; localStorage.setItem('declutter_api_url',url); showToast('✅ URL disimpan!'); testConnection(); }
+async function testConnection() { if(!API_URL){showToast('URL belum diisi');if($('connStatus')) $('connStatus').textContent='❌ Kosong';return;} if($('connStatus')) $('connStatus').textContent='⏳...'; setSyncStatus('syncing'); try { const res=await apiGet('ping',8000); if(res&&res.ok){ if($('connStatus')) $('connStatus').textContent='✅ Terhubung'; setSyncStatus('online'); showToast('✅ Koneksi berhasil!'); setTimeout(()=>syncData(false),500); } else throw new Error(); } catch(err){ if($('connStatus')) $('connStatus').textContent='❌ Gagal'; setSyncStatus('offline'); showToast('❌ Gagal terhubung'); } }
+function exportJSON() { const data=JSON.stringify({items,categories,exported_at:new Date().toISOString()},null,2); const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(data); a.download='declutter-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); showToast('📥 Data diunduh'); }
+function importJSON(e) { const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=function(ev){ try { const data=JSON.parse(ev.target.result); if(data.items) items=data.items; if(data.categories) categories=data.categories; saveLocal(); saveCategories(); renderAll(); showToast('✅ '+items.length+' item diimport!'); } catch(err){showToast('❌ File tidak valid');} }; reader.readAsText(file); e.target.value=''; }
+function clearAllData() { if(!confirm('Hapus semua data? Tidak dapat dibatalkan.')) return; items=[]; saveLocal(); renderAll(); showToast('🗑 Semua data dihapus'); }
+
+// ==================== NAVIGATION ====================
+function setNav(i) {
+  const screens=['homeScreen','dashScreen','settingsScreen','categoryScreen'];
+  screens.forEach((s,j)=>{ if($(s)) $(s).classList.toggle('active', j===i); if($('nav'+j)) $('nav'+j).classList.toggle('active', j===i); });
+  if(i===1) renderDashboard();
+  if(i===2){ if($('apiUrlInput')) $('apiUrlInput').value=API_URL; }
+  if(i===3) renderCategoryList();
+}
+
+function updateClock() { const now=new Date(); if($('clockEl')) $('clockEl').textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0'); }
+setInterval(updateClock,1000); updateClock();
+
+// ==================== INIT ====================
+async function init() {
+  loadCategories();
+  updateCategoryDropdown();
+  renderAll();
+  if(navigator.onLine && API_URL) await syncData(false);
+  else if(!API_URL) setSyncStatus('offline');
+  else setSyncStatus('offline');
+  if($('loadingScreen')) $('loadingScreen').style.display='none';
+}
+init();
+</script>
+</body>
+</html>
