@@ -1,37 +1,41 @@
-const CACHE_NAME = 'declutter-v1.0.0';
+// ClearSpace Service Worker
+const CACHE_NAME = 'clearspace-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/manifest.json'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      try {
-        await cache.add('/');
-        await cache.add('/index.html');
-        await cache.add('/manifest.json');
-      } catch(err) {}
-      return self.skipWaiting();
-    })
+    caches.open(CACHE_NAME)
+      .then(c => c.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (url.hostname.includes('script.google.com')) {
-    e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ ok: false, error: 'offline' }), {
-      headers: { 'Content-Type': 'application/json' }
-    })));
-    return;
-  }
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => {
-      if (e.request.mode === 'navigate') return caches.match('/index.html');
-      return new Response('Offline', { status: 404 });
-    }))
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match('/index.html'));
+    })
   );
 });
